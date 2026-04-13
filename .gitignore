@@ -1,3 +1,21 @@
+# ──────────────────────────────────────────────────
+# Node / React / Frontend
+# ──────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.output/
+.vercel/
+.netlify/
+frontend/.env.local
+frontend/.env.*.local
+
+# Vite
+*.local
+
+# ──────────────────────────────────────────────────
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
