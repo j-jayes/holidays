@@ -8,6 +8,7 @@ from app.models.leave_request import LeaveStatus
 
 
 class LeaveRequestCreate(BaseModel):
+    user_id: str
     start_date: date
     end_date: date
     leave_type: LeaveStatus
@@ -22,11 +23,11 @@ class LeaveRequestCreate(BaseModel):
 
 class LeaveRequestRead(BaseModel):
     id: str
-    user_id: str
-    business_unit_id: str
-    start_date: date
-    end_date: date
-    leave_type: LeaveStatus
+    userId: str
+    businessUnitId: str
+    startDate: str
+    endDate: str
+    leaveType: LeaveStatus
     status: LeaveStatus
     notes: str
 

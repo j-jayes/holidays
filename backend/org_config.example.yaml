@@ -1,0 +1,27 @@
+# Example organization configuration — commit this file, NOT org_config.yaml.
+# Copy this file to org_config.yaml and replace all placeholder values with real data.
+
+business_units:
+  Example Unit A:
+    manager_name: "Jane Doe"
+    manager_email: "jane.doe@yourcompany.com"
+    employees:
+      - name: "John Smith"
+        email: "john.smith@yourcompany.com"
+      - name: "Anna Karlsson"
+        email: "anna.karlsson@yourcompany.com"
+
+  Example Unit B:
+    manager_name: "Bob Manager"
+    manager_email: "bob.manager@yourcompany.com"
+    employees:
+      - name: "Carol Employee"
+        email: "carol.employee@yourcompany.com"
+
+  PL:
+    manager_name: ""
+    manager_email: ""
+    employees:
+      - name: "Firstname Lastname"
+        email: "firstname.lastname@yourcompany.com"
+        project: "ClientName"

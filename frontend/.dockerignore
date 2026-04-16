@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.gitignore
+# Exclude local dev secrets but keep .env.production for cloud builds
+.env
+.env.local
+.env.*.local

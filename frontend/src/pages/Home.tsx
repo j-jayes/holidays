@@ -1,15 +1,38 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
+import { useAuth } from "../auth/useAuth";
 import { apiScopes } from "../auth/msalConfig";
 
+const entraConfigured = Boolean(import.meta.env.VITE_ENTRA_CLIENT_ID);
+
 /**
- * Landing page — shown before the user logs in.
+ * Landing page.
+ * - With Entra ID: shows "Sign in with Microsoft" button.
+ * - Without Entra ID (PasswordGate mode): immediately redirects to /dashboard
+ *   since the user already authenticated via the password screen.
  */
 export default function Home() {
-  const { instance } = useMsal();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
+  // PasswordGate mode — already authed, skip this page
+  useEffect(() => {
+    if (!entraConfigured && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Entra ID mode
+  const { instance } = useMsal();
   const handleLogin = () => {
     instance.loginRedirect({ scopes: apiScopes });
   };
+
+  if (!entraConfigured) {
+    // Render nothing while the redirect fires
+    return null;
+  }
 
   return (
     <div style={{ textAlign: "center", marginTop: "10vh", fontFamily: "sans-serif" }}>

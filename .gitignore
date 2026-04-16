@@ -1,4 +1,9 @@
 # ──────────────────────────────────────────────────
+# Secrets & PII — never commit these
+# ──────────────────────────────────────────────────
+org_config.yaml
+
+# ──────────────────────────────────────────────────
 # Node / React / Frontend
 # ──────────────────────────────────────────────────
 node_modules/
@@ -10,6 +15,7 @@ build/
 .vercel/
 .netlify/
 frontend/.env.local
+frontend/.env.production
 frontend/.env.*.local
 
 # Vite
@@ -223,3 +229,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+temp/

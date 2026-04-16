@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useIsAuthenticated } from "@azure/msal-react";
+import { useAuth } from "./auth/useAuth";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 
 export default function App() {
-  const isAuthenticated = useIsAuthenticated();
+  const { isAuthenticated } = useAuth();
 
   return (
     <BrowserRouter>

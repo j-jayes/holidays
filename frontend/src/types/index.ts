@@ -15,6 +15,7 @@ export interface LeaveRequest {
 }
 
 export interface LeaveRequestCreate {
+  userId: string;
   startDate: string;
   endDate: string;
   leaveType: LeaveStatus;
@@ -38,6 +39,14 @@ export interface User {
   businessUnitId: string;
   annualLeaveBalance: number;
   compTimeBalance: number;
+}
+
+// ─── Business Unit Types ──────────────────────────────────────────────────
+
+export interface BusinessUnit {
+  id: string;
+  name: string;
+  managerUserId: string;
 }
 
 // ─── Public Holiday Types ─────────────────────────────────────────────────

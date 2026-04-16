@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.api.v1 import business_units, leave_requests, public_holidays, users
 from app.config import settings
@@ -11,6 +12,9 @@ app = FastAPI(
     description="REST API for managing employee leave requests.",
     version="0.1.0",
 )
+
+# Trust proxy headers (X-Forwarded-Proto etc.) so redirects use https://
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # ─── CORS ────────────────────────────────────────────────────────────────────
 app.add_middleware(

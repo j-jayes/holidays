@@ -1,73 +1,118 @@
-"""
-Seed the Cosmos DB with representative test data.
+﻿"""Seed the Cosmos DB from org_config.yaml.
 
-Usage:
-    python scripts/seed_db.py \
-        --cosmos-url https://<account>.documents.azure.com:443/ \
-        --cosmos-key <key> \
-        --db-name vacation-tracker
+Usage (from repo root):
+    .venv/Scripts/python scripts/seed_db.py [--clear]
 
-Creates:
-  - 3 BusinessUnit documents
-  - 5 User documents
-  - 10 LeaveRequest documents (mix of statuses and types)
+Flags:
+    --clear   Delete all existing documents before seeding (default: upsert only)
+
+Sweden BUs only.
 """
 
 import argparse
 import asyncio
-from datetime import date
+import re
+import sys
+from pathlib import Path
 
-from azure.cosmos.aio import CosmosClient
+# Allow importing app modules from the backend/ subdirectory
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
-BUSINESS_UNITS = [
-    {"id": "bu-malmo", "name": "CU Malmö", "managerUserId": "user-rasmus"},
-    {"id": "bu-goteborg", "name": "CU Göteborg", "managerUserId": "user-magnus"},
-    {"id": "bu-stockholm", "name": "CU Stockholm", "managerUserId": "user-christian"},
-]
-
-USERS = [
-    {"id": "user-rasmus",    "email": "rasmus@example.com",    "displayName": "Rasmus Bodin Löfgren",  "role": "Manager", "businessUnitId": "bu-malmo",     "annualLeaveBalance": 25, "compTimeBalance": 0},
-    {"id": "user-magnus",    "email": "magnus@example.com",    "displayName": "Magnus Hillman",         "role": "Manager", "businessUnitId": "bu-goteborg",   "annualLeaveBalance": 25, "compTimeBalance": 0},
-    {"id": "user-christian", "email": "christian@example.com", "displayName": "Christian Carlborg",     "role": "Manager", "businessUnitId": "bu-stockholm",  "annualLeaveBalance": 25, "compTimeBalance": 0},
-    {"id": "user-alice",     "email": "alice@example.com",     "displayName": "Alice Svensson",         "role": "Employee","businessUnitId": "bu-malmo",     "annualLeaveBalance": 25, "compTimeBalance": 8},
-    {"id": "user-bob",       "email": "bob@example.com",       "displayName": "Bob Lindqvist",          "role": "Employee","businessUnitId": "bu-stockholm",  "annualLeaveBalance": 20, "compTimeBalance": 4},
-]
-
-LEAVE_REQUESTS = [
-    {"id": "lr-001", "userId": "user-alice", "businessUnitId": "bu-malmo",    "startDate": "2025-07-14", "endDate": "2025-07-18", "leaveType": "B",  "status": "B",  "notes": "Summer holiday"},
-    {"id": "lr-002", "userId": "user-alice", "businessUnitId": "bu-malmo",    "startDate": "2025-12-22", "endDate": "2025-12-26", "leaveType": "A",  "status": "A",  "notes": "Christmas"},
-    {"id": "lr-003", "userId": "user-bob",   "businessUnitId": "bu-stockholm","startDate": "2025-06-06", "endDate": "2025-06-06", "leaveType": "B",  "status": "B",  "notes": "National Day (bridge)"},
-    {"id": "lr-004", "userId": "user-bob",   "businessUnitId": "bu-stockholm","startDate": "2025-08-04", "endDate": "2025-08-08", "leaveType": "C",  "status": "B",  "notes": "Comp time"},
-    {"id": "lr-005", "userId": "user-alice", "businessUnitId": "bu-malmo",    "startDate": "2025-09-01", "endDate": "2025-11-30", "leaveType": "FL", "status": "FL", "notes": "Parental leave"},
-]
+from app.core.org_config import load_org_config
+from app.db.cosmos import (
+    get_container,
+    list_items,
+    upsert_item,
+    delete_item,
+    USERS_CONTAINER,
+    BUSINESS_UNITS_CONTAINER,
+    LEAVE_REQUESTS_CONTAINER,
+)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Seed the Cosmos DB with test data.")
-    parser.add_argument("--cosmos-url", required=True)
-    parser.add_argument("--cosmos-key", required=True)
-    parser.add_argument("--db-name", default="vacation-tracker")
-    return parser.parse_args()
+SWEDEN_BUS = {"CU Malmö", "CU Göteborg", "CU Stockholm", "OH"}
 
 
-async def seed(args: argparse.Namespace) -> None:
-    async with CosmosClient(url=args.cosmos_url, credential=args.cosmos_key) as client:
-        db = client.get_database_client(args.db_name)
+def slugify(text: str) -> str:
+    """Convert a display name or BU name to a URL-safe slug."""
+    text = text.lower()
+    # Normalise Swedish chars
+    for src, dst in [("ä", "a"), ("å", "a"), ("ö", "o"), ("é", "e"), ("ę", "e"),
+                     ("ó", "o"), ("ń", "n"), ("ł", "l"), ("ź", "z"), ("ż", "z"),
+                     ("ą", "a"), ("ś", "s"), ("ć", "c"), ("ź", "z")]:
+        text = text.replace(src, dst)
+    text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+    return text
 
-        for bu in BUSINESS_UNITS:
-            await db.get_container_client("BusinessUnits").upsert_item(bu)
-        print(f"Seeded {len(BUSINESS_UNITS)} business units.")
 
-        for user in USERS:
-            await db.get_container_client("Users").upsert_item(user)
-        print(f"Seeded {len(USERS)} users.")
+def bu_id(bu_name: str) -> str:
+    return f"bu-{slugify(bu_name)}"
 
-        for lr in LEAVE_REQUESTS:
-            await db.get_container_client("LeaveRequests").upsert_item(lr)
-        print(f"Seeded {len(LEAVE_REQUESTS)} leave requests.")
 
-    print("Seeding complete.")
+def user_id(name: str) -> str:
+    return f"user-{slugify(name)}"
+
+
+async def clear_container(container_name: str) -> None:
+    items = await list_items(container_name)
+    for item in items:
+        await delete_item(container_name, item["id"])
+    print(f"  Cleared {len(items)} items from {container_name}")
+
+
+async def seed(clear: bool = False) -> None:
+    config = load_org_config()
+
+    if clear:
+        print("Clearing existing data...")
+        for c in [USERS_CONTAINER, BUSINESS_UNITS_CONTAINER, LEAVE_REQUESTS_CONTAINER]:
+            await clear_container(c)
+
+    sweden_bus = {
+        name: bu
+        for name, bu in config.business_units.items()
+        if name in SWEDEN_BUS
+    }
+
+    print(f"\nSeeding {len(sweden_bus)} Swedish business units...")
+    for bu_name, bu_data in sweden_bus.items():
+        # Determine manager user id
+        manager_uid = user_id(bu_data.manager_name) if bu_data.manager_name else ""
+        doc = {
+            "id": bu_id(bu_name),
+            "name": bu_name,
+            "managerUserId": manager_uid,
+        }
+        await upsert_item(BUSINESS_UNITS_CONTAINER, doc)
+        print(f"  BU: {bu_name} ({doc['id']})")
+
+    # Collect all manager names so we can mark them with the Manager role
+    manager_names = {bu_data.manager_name for bu_data in sweden_bus.values() if bu_data.manager_name}
+
+    print(f"\nSeeding users...")
+    for bu_name, bu_data in sweden_bus.items():
+        this_bu_id = bu_id(bu_name)
+
+        # Employees (managers are seeded via their actual BU's employee list)
+        for emp in bu_data.employees:
+            emp_doc = {
+                "id": user_id(emp.name),
+                "email": emp.email,
+                "displayName": emp.name,
+                "role": "Manager" if emp.name in manager_names else "Employee",
+                "businessUnitId": this_bu_id,
+                "entraOid": "",
+                "annualLeaveBalance": 25.0,
+                "compTimeBalance": 0.0,
+            }
+            await upsert_item(USERS_CONTAINER, emp_doc)
+            print(f"  {'Manager' if emp.name in manager_names else 'Employee'}: {emp.name} ({emp_doc['id']})")
+
+    print("\nSeeding complete.")
 
 
 if __name__ == "__main__":
-    asyncio.run(seed(parse_args()))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--clear", action="store_true", help="Delete all existing documents first")
+    args = parser.parse_args()
+    asyncio.run(seed(clear=args.clear))

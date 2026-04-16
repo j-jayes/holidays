@@ -8,11 +8,11 @@ from app.models.user import UserRole
 class UserRead(BaseModel):
     id: str
     email: EmailStr
-    display_name: str
+    displayName: str
     role: UserRole
-    business_unit_id: str
-    annual_leave_balance: float
-    comp_time_balance: float
+    businessUnitId: str
+    annualLeaveBalance: float
+    compTimeBalance: float
 
 
 class UserCreate(BaseModel):
@@ -20,4 +20,4 @@ class UserCreate(BaseModel):
     display_name: str
     role: UserRole
     business_unit_id: str
-    entra_oid: str
+    entra_oid: str = ""

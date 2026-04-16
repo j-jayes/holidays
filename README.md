@@ -1,31 +1,101 @@
 # Team Vacation Tracker
 
-A modern web application to replace a manual Excel-based vacation tracking system. Built with React (frontend), FastAPI (backend), and Azure Cosmos DB, hosted on Azure Container Apps with Microsoft Entra ID authentication.
+A web application that replaces a manual Excel-based vacation tracking system for a 57-person Swedish consulting team. Built with React (TypeScript), FastAPI, and Azure Cosmos DB — deployed on Azure Container Apps with scale-to-zero.
+
+**Live app:** https://ca-holidays-frontend.nicegrass-38567ece.northeurope.azurecontainerapps.io  
+**API docs:** https://ca-holidays-backend.nicegrass-38567ece.northeurope.azurecontainerapps.io/docs
 
 ---
 
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
-2. [Tech Stack & Architecture](#2-tech-stack--architecture)
-3. [Repository Structure](#3-repository-structure)
-4. [Getting Started](#4-getting-started)
-5. [Core Features](#5-core-features)
+2. [App Walkthrough](#2-app-walkthrough)
+3. [Tech Stack & Architecture](#3-tech-stack--architecture)
+4. [Repository Structure](#4-repository-structure)
+5. [Getting Started](#5-getting-started)
 6. [Leave Categories](#6-leave-categories)
 7. [Roles & Permissions](#7-roles--permissions)
 8. [Workflow & Notifications](#8-workflow--notifications)
 9. [Agile Sprint Plan](#9-agile-sprint-plan)
-10. [Contributing](#10-contributing)
+10. [Azure Infrastructure](#10-azure-infrastructure)
+11. [Contributing](#11-contributing)
 
 ---
 
 ## 1. Project Overview
 
-This application replaces a complex, manual Excel-based vacation tracking system with a modern, scalable web application. It streamlines the leave request process, automates manager approvals via email workflows, provides transparent team availability, and reduces administrative overhead.
+Team Vacation Tracker replaces a complex, shared Excel file that 57 employees used to track vacation, parental leave, and comp time across four business units (CU Malmö, CU Göteborg, CU Stockholm, and OH).
+
+### What it does today
+
+- **Gantt-style team calendar** — a horizontally scrollable timeline showing up to 6 months of leave for all 57 team members, grouped by business unit. Approved leave is shown in green, pending in amber, parental in sky-blue, comp time in violet. Swedish public holidays from [Nager.Date](https://date.nager.at/) are automatically highlighted in red.
+- **Drag to book** — click and drag across any row to select a date range. A corner HUD appears (without dimming the calendar) to confirm the employee name, leave type, and optional notes before submitting.
+- **Manager approvals dashboard** — a separate tab lists all pending requests with one-click Approve / Deny buttons.
+- **Business unit filters** — quickly narrow the calendar to a single CU.
+- **Jump to Today** — scrolls the timeline so today's column is in view.
+- **Scale-to-zero aware** — the app displays an amber loading banner with a spinner while the backend Container App wakes up, and auto-retries up to 8 times before showing an error.
+- **780 historical leave records** imported from the existing Excel file, giving the team an immediate view of past bookings.
+
+### What is planned
+
+- Full Microsoft Entra ID (SSO) authentication replacing the current shared password gate.
+- Email notifications to managers when new requests are submitted (Azure Communication Services is provisioned and integrated, pending Entra setup).
+- Personal leave balance view (read from the separate "Catalyst" HR system).
 
 ---
 
-## 2. Tech Stack & Architecture
+## 2. App Walkthrough
+
+### Login screen
+
+The app is currently protected by a shared team password. Future versions will use Microsoft Entra ID SSO.
+
+![Login screen](docs/screenshots/01-login.png)
+
+---
+
+### Cold-start / loading banner
+
+Both Container Apps are configured with `min-replicas = 0`. When the backend scales up from zero, an amber banner appears while the app retries in the background — no blank screen, no manual refresh needed.
+
+![Loading banner shown while backend wakes up](docs/screenshots/02-loading.png)
+
+---
+
+### Team calendar
+
+After data loads, the full Gantt calendar is shown. Rows are grouped by business unit, weekends and public holidays are shaded red, and today's column is pinned with a sky-blue border. Hovering any row highlights it in blue. The legend, BU filter tabs, and "Today" jump button sit above the grid.
+
+![Team calendar with leave data for all 57 employees](docs/screenshots/03-calendar.png)
+
+---
+
+### Booking a leave request (corner HUD)
+
+Clicking and dragging across cells on any row opens a compact HUD panel in the bottom-right corner — the calendar behind it stays fully visible and interactive. The panel pre-fills the employee name based on which row was dragged, shows the selected date range and working-day count, and lets the user choose vacation, parental, or comp-time leave before submitting.
+
+![Leave request HUD — calendar stays visible behind it](docs/screenshots/04-leave-hud.png)
+
+---
+
+### Manager approvals
+
+The **Approvals** tab lists all pending requests with the employee name, date range, leave type, and Approve / Deny buttons. The badge in the navigation tab shows the live count of pending items.
+
+![Manager approvals dashboard](docs/screenshots/05-approvals.png)
+
+---
+
+### Backend API (OpenAPI / Swagger)
+
+The FastAPI backend exposes a fully documented REST API. Swagger UI is available at `/docs`.
+
+![OpenAPI docs showing Users and Leave Requests endpoints](docs/screenshots/06-api-docs.png)
+
+---
+
+## 3. Tech Stack & Architecture
 
 | Layer | Technology |
 |---|---|
@@ -60,7 +130,7 @@ This application replaces a complex, manual Excel-based vacation tracking system
 
 ---
 
-## 3. Repository Structure
+## 4. Repository Structure
 
 ```
 holidays/
@@ -153,7 +223,7 @@ holidays/
 
 ---
 
-## 4. Getting Started
+## 5. Getting Started
 
 ### Prerequisites
 
@@ -204,23 +274,6 @@ cd frontend && npm test
 
 ---
 
-## 5. Core Features
-
-### Interactive Calendar View
-- Full-page calendar UI for viewing the current month and year.
-- **Drag-and-Drop / Multi-Select:** Click and drag across multiple days to bulk-request leave.
-- **Public Holiday Integration:** Automatically fetches Swedish (and eventually Polish) public holidays via the [Nager.Date API](https://date.nager.at/). These days are pre-colored red to prevent employees from wasting vacation days.
-- **Team View:** A toggleable read-only calendar showing colleagues' approved leaves to ensure adequate project coverage.
-
-### Leave Request Workflow
-1. Employee selects date range and leave type on the calendar.
-2. A `POST /api/v1/leave-requests` call creates the request with status `A` (Requested).
-3. FastAPI triggers an email to the assigned manager with a magic link to the approval dashboard.
-4. Manager approves or denies the request via the Manager Dashboard.
-5. Employee receives a confirmation email.
-
----
-
 ## 6. Leave Categories
 
 | Code | Description |
@@ -246,12 +299,15 @@ cd frontend && npm test
 
 ### Automated Manager Routing (by Business Unit)
 
-| Business Unit | Manager |
+Manager routing is configured in `backend/org_config.yaml` (not committed — see `org_config.example.yaml`).
+
+| Business Unit | Description |
 |---|---|
-| CU Malmö | Rasmus Bodin Löfgren |
-| CU Göteborg | Magnus Hillman |
-| CU Stockholm | Christian Carlborg |
-| OH / PL | *Admin-configurable* |
+| CU Malmö | Consultant Unit — Malmö office |
+| CU Göteborg | Consultant Unit — Gothenburg office |
+| CU Stockholm | Consultant Unit — Stockholm office |
+| OH | Overhead — internal/non-billable staff |
+| PL | Poland — staff on external client projects |
 
 ### Email Magic Links
 When an employee requests leave, FastAPI sends a rich-text email to the designated manager containing:
@@ -298,7 +354,116 @@ When an employee requests leave, FastAPI sends a rich-text email to the designat
 
 ---
 
-## 10. Contributing
+## 10. Azure Infrastructure
+
+All resources live in resource group **`rg-holidays`** under subscription `90a112e9-de6b-4011-be14-2cf8943a9ec8`.
+
+### Provisioned Resources
+
+| Resource Name | Type | Location | Purpose |
+|---|---|---|---|
+| `cosmos-holidays-dev-001` | Azure Cosmos DB (NoSQL) | Sweden Central | Primary database — `vacation-tracker` DB with `Users`, `LeaveRequests`, `BusinessUnits` containers |
+| `acs-holidays-dev-001` | Azure Communication Services | Global (data: Europe) | Transactional email for leave notifications |
+| `crholdaysdev001` | Azure Container Registry | Sweden Central | Docker image registry for backend & frontend (`crholdaysdev001.azurecr.io`) |
+| `log-holidays-dev-001` | Log Analytics Workspace | Sweden Central | Centralised logging (manually created) |
+| `workspace-rgholidaysPpiL` | Log Analytics Workspace | North Europe | Auto-created by Container Apps Environment |
+| `cae-holidays-dev-001` | Container Apps Environment | North Europe | Runtime host — default domain: `nicegrass-38567ece.northeurope.azurecontainerapps.io` |
+
+> **Note:** Backend and frontend Container Apps are deployed into `cae-holidays-dev-001` during sprint 1 CI/CD setup.
+
+### Recreating the Infrastructure
+
+```bash
+# 1. Log in and set subscription
+az login
+az account set --subscription 90a112e9-de6b-4011-be14-2cf8943a9ec8
+
+# 2. Resource group
+az group create --name rg-holidays --location swedencentral
+
+# 3. Cosmos DB (NoSQL, serverless)
+az cosmosdb create \
+  --name cosmos-holidays-dev-001 \
+  --resource-group rg-holidays \
+  --kind GlobalDocumentDB \
+  --capabilities EnableServerless \
+  --locations regionName=swedencentral
+
+az cosmosdb sql database create \
+  --account-name cosmos-holidays-dev-001 \
+  --resource-group rg-holidays \
+  --name vacation-tracker
+
+for container in Users LeaveRequests BusinessUnits; do
+  az cosmosdb sql container create \
+    --account-name cosmos-holidays-dev-001 \
+    --resource-group rg-holidays \
+    --database-name vacation-tracker \
+    --name $container \
+    --partition-key-path /id
+done
+
+# 4. Azure Communication Services
+az communication create \
+  --name acs-holidays-dev-001 \
+  --resource-group rg-holidays \
+  --location global \
+  --data-location Europe
+
+# 5. Container Registry
+az acr create \
+  --name crholdaysdev001 \
+  --resource-group rg-holidays \
+  --sku Basic \
+  --location swedencentral
+
+# 6. Log Analytics
+az monitor log-analytics workspace create \
+  --name log-holidays-dev-001 \
+  --resource-group rg-holidays \
+  --location swedencentral
+
+# 7. Container Apps Environment (northeurope — capacity availability)
+az containerapp env create \
+  --name cae-holidays-dev-001 \
+  --resource-group rg-holidays \
+  --location northeurope
+```
+
+### Local Development Setup
+
+```bash
+# Backend
+cd backend
+# Use uv with the repo-level .venv
+uv venv ../.venv          # already exists — skip if present
+uv pip install -r requirements.txt
+cp .env.example .env      # then fill in real values (see below)
+uvicorn app.main:app --reload
+
+# Frontend
+cd frontend
+npm install
+cp .env.example .env.local   # then fill in real values
+npm run dev
+```
+
+### Environment Variables
+
+Copy the example files and populate them — **do not commit the filled-in versions**:
+
+| File | Committed | Purpose |
+|---|---|---|
+| `backend/.env.example` | ✅ Yes | Template with all required keys |
+| `backend/.env` | ❌ No | Real secrets & infrastructure URLs |
+| `backend/org_config.yaml` | ❌ No | PII — employee names, emails, BU assignments |
+| `backend/org_config.example.yaml` | ✅ Yes | Template for `org_config.yaml` |
+| `frontend/.env.example` | ✅ Yes | Template for frontend Vite variables |
+| `frontend/.env.local` | ❌ No | Real Entra ID client IDs for local dev |
+
+---
+
+## 11. Contributing
 
 1. Fork the repository and create a feature branch from `main`.
 2. Follow the coding standards described in `docs/architecture.md`.

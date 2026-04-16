@@ -1,8 +1,7 @@
 """Public holiday proxy endpoints — wraps the Nager.Date API."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.auth.entra import get_current_user
 from app.utils.holidays import fetch_public_holidays
 
 router = APIRouter()
@@ -12,7 +11,6 @@ router = APIRouter()
 async def get_public_holidays(
     country_code: str,
     year: int,
-    current_user: dict = Depends(get_current_user),
 ) -> list[dict]:
     """
     Return public holidays for a given country and year.
