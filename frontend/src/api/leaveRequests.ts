@@ -1,9 +1,16 @@
 ﻿import apiClient from "./client";
 import type { LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate } from "../types";
 
+function asLeaveRequestArray(value: unknown): LeaveRequest[] {
+  if (Array.isArray(value)) return value as LeaveRequest[];
+  throw new Error(`Unexpected leave-requests payload (expected array): ${JSON.stringify(value)}`);
+}
+
 export const leaveRequestsApi = {
   list: (): Promise<LeaveRequest[]> =>
-    apiClient.get<LeaveRequest[]>("/api/v1/leave-requests").then((r) => r.data),
+    apiClient
+      .get<LeaveRequest[]>("/api/v1/leave-requests")
+      .then((r) => asLeaveRequestArray(r.data)),
   get: (id: string): Promise<LeaveRequest> =>
     apiClient.get<LeaveRequest>(`/api/v1/leave-requests/${id}`).then((r) => r.data),
   create: (payload: LeaveRequestCreate): Promise<LeaveRequest> =>
