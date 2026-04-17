@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from app.api.v1 import business_units, leave_requests, public_holidays, users
+from app.api.v1 import business_units, exports, leave_requests, public_holidays, users
 from app.config import settings
 
 app = FastAPI(
@@ -41,6 +41,11 @@ app.include_router(
     public_holidays.router,
     prefix="/api/v1/public-holidays",
     tags=["Public Holidays"],
+)
+app.include_router(
+    exports.router,
+    prefix="/api/v1/exports",
+    tags=["Exports"],
 )
 
 

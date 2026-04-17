@@ -70,7 +70,7 @@ export default function Dashboard() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-fuchsia-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-white to-nexer-light-blue flex flex-col">
       <Toaster position="top-right" toastOptions={{ style: { borderRadius: "12px", fontFamily: "inherit" } }} />
 
       {/* ── Wake-up banner ─────────────────────────────────────────────────── */}
@@ -78,8 +78,8 @@ export default function Dashboard() {
         <div
           className={`sticky top-0 z-50 flex items-center gap-3 px-4 py-2.5 text-sm font-medium
             ${loadState === "error"
-              ? "bg-red-50 border-b border-red-200 text-red-700"
-              : "bg-amber-50 border-b border-amber-200 text-amber-800"}`}
+              ? "bg-[#ffecea] border-b border-nexer-warm-red/30 text-nexer-warm-red"
+              : "bg-[#fff2ed] border-b border-nexer-orange/30 text-[#a0410e]"}`}
         >
           {loadState !== "error" ? (
             /* Spinning circle */

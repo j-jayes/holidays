@@ -15,9 +15,9 @@ interface Props {
 }
 
 const LEAVE_TYPES: { value: LeaveStatus; label: string; cls: string }[] = [
-  { value: "A",  label: "Vacation",  cls: "bg-amber-100 text-amber-700 border-amber-300" },
-  { value: "FL", label: "Parental",  cls: "bg-sky-100 text-sky-700 border-sky-300" },
-  { value: "C",  label: "Comp time", cls: "bg-violet-100 text-violet-700 border-violet-300" },
+  { value: "A",  label: "Vacation",  cls: "bg-[#fff0ea] text-nexer-orange border-[#ffd0bb]" },
+  { value: "FL", label: "Parental",  cls: "bg-nexer-light-blue text-nexer-blue border-nexer-blue/30" },
+  { value: "C",  label: "Comp time", cls: "bg-[#f0e6fb] text-nexer-purple border-nexer-purple/30" },
 ];
 
 function countWorkdays(start: string, end: string): number {
@@ -80,7 +80,7 @@ export default function LeaveRequestModal({
           <span className="font-mono">{startDate}</span>
           <span>&#8594;</span>
           <span className="font-mono">{endDate}</span>
-          <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium text-xs">
+          <span className="ml-auto px-2 py-0.5 rounded-full bg-nexer-light-blue text-nexer-blue font-medium text-xs">
             {workdays} day{workdays !== 1 ? "s" : ""}
           </span>
         </div>
@@ -94,7 +94,7 @@ export default function LeaveRequestModal({
             <select
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-fuchsia-400 transition-colors"
+              className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-nexer-light-purple transition-colors"
             >
               <option value="">Select your name…</option>
               {users.map((u) => (
@@ -115,7 +115,7 @@ export default function LeaveRequestModal({
                   type="button"
                   onClick={() => setLeaveType(lt.value)}
                   className={`flex-1 py-1.5 rounded-xl text-xs font-medium border-2 transition-all
-                    ${leaveType === lt.value ? lt.cls + " ring-2 ring-offset-1 ring-fuchsia-400" : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"}`}
+                    ${leaveType === lt.value ? lt.cls + " ring-2 ring-offset-1 ring-nexer-light-purple" : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"}`}
                 >
                   {lt.label}
                 </button>
@@ -133,14 +133,14 @@ export default function LeaveRequestModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Any extra context…"
-              className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm resize-none focus:outline-none focus:border-fuchsia-400 transition-colors"
+              className="w-full px-3 py-2 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm resize-none focus:outline-none focus:border-nexer-light-purple transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white font-semibold text-sm shadow-md hover:shadow-lg hover:from-fuchsia-600 hover:to-violet-600 transition-all duration-200 disabled:opacity-60 active:scale-95"
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-nexer-light-purple to-nexer-purple text-white font-semibold text-sm shadow-md hover:shadow-lg hover:from-[#9942e0] hover:to-[#4a1888] transition-all duration-200 disabled:opacity-60 active:scale-95"
           >
             {loading ? "Submitting…" : `Submit ${workdays} day${workdays !== 1 ? "s" : ""} of leave`}
           </button>

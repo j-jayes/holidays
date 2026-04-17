@@ -11,15 +11,41 @@ interface Props {
 
 const TYPE_LABEL: Record<string, string> = { A: "Vacation", FL: "Parental", C: "Comp", B: "Approved" };
 const TYPE_CLS:   Record<string, string> = {
-  A:  "bg-amber-100 text-amber-700",
-  FL: "bg-sky-100 text-sky-700",
-  C:  "bg-violet-100 text-violet-700",
-  B:  "bg-emerald-100 text-emerald-700",
+  A:  "bg-[#fff0ea] text-nexer-orange",
+  FL: "bg-nexer-light-blue text-nexer-blue",
+  C:  "bg-[#f0e6fb] text-nexer-purple",
+  B:  "bg-[#e5e1f3] text-nexer-blue",
 };
 
 function initials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+
+const EXPORTS = [
+  {
+    label: "CSV — Tidy Data",
+    description: "Flat table, one row per request. Opens directly in Excel.",
+    href: `${API_BASE}/api/v1/exports/leave-requests.csv`,
+    icon: "📊",
+    filename: "leave-requests.csv",
+  },
+  {
+    label: "JSON",
+    description: "Machine-readable array, same enriched fields as the CSV.",
+    href: `${API_BASE}/api/v1/exports/leave-requests.json`,
+    icon: "{ }",
+    filename: "leave-requests.json",
+  },
+  {
+    label: "Excel Live Link (.iqy)",
+    description: "Open once in Excel — then use Data → Refresh All to pull the latest data.",
+    href: `${API_BASE}/api/v1/exports/leave-requests.iqy`,
+    icon: "🔗",
+    filename: "leave-requests.iqy",
+  },
+] as const;
 
 export default function ManagerDashboard({ pendingRequests, users, onUpdate }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
@@ -44,11 +70,12 @@ export default function ManagerDashboard({ pendingRequests, users, onUpdate }: P
   };
 
   return (
+    <div className="flex flex-col gap-4">
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <h2 className="text-lg font-bold text-gray-800 mb-4">
         Pending requests
         {pendingRequests.length > 0 && (
-          <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-fuchsia-100 text-fuchsia-700 text-xs font-bold">
+          <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#f0e6fb] text-nexer-purple text-xs font-bold">
             {pendingRequests.length}
           </span>
         )}
@@ -68,7 +95,7 @@ export default function ManagerDashboard({ pendingRequests, users, onUpdate }: P
               <div key={req.id} className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
                 {/* Top row */}
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-400 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-nexer-light-purple to-nexer-purple flex items-center justify-center text-white text-xs font-bold shrink-0">
                     {initials(name)}
                   </div>
                   <div>
@@ -89,14 +116,14 @@ export default function ManagerDashboard({ pendingRequests, users, onUpdate }: P
                   <button
                     onClick={() => handle(req.id, "approve")}
                     disabled={loading !== null}
-                    className="flex-1 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 disabled:opacity-60 transition-colors"
+                    className="flex-1 py-1.5 rounded-lg bg-nexer-blue text-white text-xs font-semibold hover:bg-[#0d0460] disabled:opacity-60 transition-colors"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handle(req.id, "deny")}
                     disabled={loading !== null}
-                    className="flex-1 py-1.5 rounded-lg bg-red-100 text-red-600 text-xs font-semibold hover:bg-red-200 disabled:opacity-60 transition-colors"
+                    className="flex-1 py-1.5 rounded-lg bg-[#ffecea] text-nexer-warm-red text-xs font-semibold hover:bg-[#ffd5cf] disabled:opacity-60 transition-colors"
                   >
                     Deny
                   </button>
@@ -107,5 +134,31 @@ export default function ManagerDashboard({ pendingRequests, users, onUpdate }: P
         </div>
       )}
     </div>
-  );
+
+    {/* ── Data Exports ──────────────────────────────────────────────────── */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-lg font-bold text-gray-800 mb-1">Data Exports</h2>
+      <p className="text-xs text-gray-400 mb-4">
+        All leave requests — employee email, name, business unit, ISO dates, and status labels.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {EXPORTS.map((exp) => (
+          <a
+            key={exp.filename}
+            href={exp.href}
+            download={exp.filename}
+            className="flex flex-col gap-1.5 rounded-xl border border-gray-100 p-4 hover:border-nexer-light-purple/40 hover:bg-[#f5eefe] transition-colors group no-underline"
+          >
+            <span className="text-2xl leading-none">{exp.icon}</span>
+            <span className="font-semibold text-sm text-gray-800 group-hover:text-nexer-purple transition-colors">
+              {exp.label}
+            </span>
+            <span className="text-xs text-gray-400 leading-snug">{exp.description}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 }

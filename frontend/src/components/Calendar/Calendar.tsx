@@ -23,9 +23,9 @@ const DOW = ["S", "M", "T", "W", "T", "F", "S"] as const;
 
 // Hex fill colours: [approved, pending]
 const LEAVE_HEX: Record<string, [string, string]> = {
-  A:  ["#34d399", "#fcd34d"], // emerald / amber  — Vacation
-  FL: ["#38bdf8", "#bae6fd"], // sky               — Parental
-  C:  ["#a78bfa", "#ddd6fe"], // violet            — Comp time
+  A:  ["#ff875a", "#ffd0bb"], // nexer-orange / light  — Vacation
+  FL: ["#190878", "#d9e6f0"], // nexer-blue / light-blue — Parental
+  C:  ["#5a1ea0", "#e8d8f7"], // nexer-purple / light  — Comp time
 };
 
 interface DayInfo {
@@ -51,7 +51,7 @@ function initials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 function avatarBg(id: string): string {
-  const g = ["from-rose-400 to-pink-500","from-amber-400 to-orange-500","from-emerald-400 to-teal-500","from-sky-400 to-blue-500","from-violet-400 to-purple-500","from-fuchsia-400 to-pink-500"];
+  const g = ["from-[#ff875a] to-[#ff5028]","from-[#aa4bf5] to-[#5a1ea0]","from-[#190878] to-[#5a1ea0]","from-[#5a1ea0] to-[#190878]","from-[#ff5028] to-[#aa4bf5]","from-[#aa4bf5] to-[#190878]"];
   return g[id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % g.length];
 }
 
@@ -206,11 +206,11 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
 
         <div className="ml-auto flex items-center gap-3 flex-wrap">
           {[
-            { bg: "#34d399", label: "Approved" },
-            { bg: "#fcd34d", label: "Pending" },
-            { bg: "#38bdf8", label: "Parental" },
-            { bg: "#a78bfa", label: "Comp time" },
-            { bg: "#fecaca", label: "Holiday / Weekend" },
+          { bg: "#ff875a", label: "Approved" },
+            { bg: "#ffd0bb", label: "Pending" },
+            { bg: "#d9e6f0", label: "Parental" },
+            { bg: "#5a1ea0", label: "Comp time" },
+            { bg: "#ffd5cf", label: "Holiday / Weekend" },
           ].map(({ bg, label }) => (
             <span key={label} className="flex items-center gap-1 text-xs text-gray-500">
               <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ background: bg }} />
@@ -223,7 +223,7 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
         {/* Jump to today */}
         <button
           onClick={scrollToToday}
-          className="ml-2 shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-sky-100 text-sky-700 hover:bg-sky-200 transition-colors"
+          className="ml-2 shrink-0 px-3 py-1 rounded-lg text-xs font-medium bg-nexer-light-blue text-nexer-blue hover:bg-[#c3d8ea] transition-colors"
         >
           Today
         </button>
@@ -253,14 +253,14 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
             <tr>
               <th
                 className="sticky left-0 z-30 border-b border-r border-gray-200"
-                style={{ background: "#f8fafc" }}
+                style={{ background: "#f0f0f0" }}
               />
               {monthGroups.map((mg) => (
                 <th
                   key={mg.label}
                   colSpan={mg.colSpan}
                   className="border-b border-l border-gray-200 text-left px-1.5 py-1"
-                  style={{ background: "#f8fafc", fontSize: 11, fontWeight: 600, color: "#4b5563", whiteSpace: "nowrap" }}
+                  style={{ background: "#f0f0f0", fontSize: 11, fontWeight: 600, color: "#4b5563", whiteSpace: "nowrap" }}
                 >
                   {mg.label}
                 </th>
@@ -271,7 +271,7 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
             <tr>
               <th
                 className="sticky left-0 z-30 border-b border-r border-gray-200 text-left px-3"
-                style={{ background: "#ffffff", fontSize: 10, fontWeight: 400, color: "#9ca3af", paddingTop: 3, paddingBottom: 3 }}
+                  style={{ background: "#ffffff", fontSize: 10, fontWeight: 400, color: "#919191", paddingTop: 3, paddingBottom: 3 }}
               >
                 Employee
               </th>
@@ -284,8 +284,8 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
                     fontWeight: d.isToday ? 800 : 500,
                     paddingTop: 2,
                     paddingBottom: 2,
-                    background: d.isToday ? "#e0f2fe" : d.isHoliday ? "#fee2e2" : d.isWeekend ? "#fff1f2" : "#ffffff",
-                    color: d.isToday ? "#0369a1" : d.isHoliday || d.isWeekend ? "#f87171" : "#9ca3af",
+                    background: d.isToday ? "#d9e6f0" : d.isHoliday ? "#ffd5cf" : d.isWeekend ? "#fff4f0" : "#ffffff",
+                    color: d.isToday ? "#190878" : d.isHoliday || d.isWeekend ? "#ff5028" : "#919191",
                   }}
                 >
                   {d.dayNum}
@@ -308,8 +308,8 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
                     fontWeight: 400,
                     paddingTop: 1,
                     paddingBottom: 2,
-                    background: d.isToday ? "#e0f2fe" : d.isHoliday ? "#fee2e2" : d.isWeekend ? "#fff1f2" : "#f9fafb",
-                    color: d.isHoliday || d.isWeekend ? "#f87171" : "#d1d5db",
+                    background: d.isToday ? "#d9e6f0" : d.isHoliday ? "#ffd5cf" : d.isWeekend ? "#fff4f0" : "#f0f0f0",
+                    color: d.isHoliday || d.isWeekend ? "#ff5028" : "#c8c8c8",
                   }}
                 >
                   {DOW[d.dow]}
@@ -327,10 +327,10 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
                       colSpan={days.length + 1}
                       className="border-b border-t border-gray-200 px-3"
                       style={{
-                        background: "#f1f5f9",
+                        background: "#f0f0f0",
                         fontSize: 10,
                         fontWeight: 700,
-                        color: "#6b7280",
+                        color: "#919191",
                         letterSpacing: "0.07em",
                         textTransform: "uppercase",
                         paddingTop: 4,
@@ -346,7 +346,7 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
               const { user, alt } = row;
               const userLeave = userLeaveMap.get(user.id);
               const isHovered = hoveredRow === user.id;
-              const rowBg = isHovered ? "#eff6ff" : alt ? "#f9fafb" : "#ffffff";
+              const rowBg = isHovered ? "#d9e6f0" : alt ? "#f0f0f0" : "#ffffff";
 
               return (
                 <tr
@@ -382,14 +382,14 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
 
                     let bg: string;
                     if (selected) {
-                      bg = "#e879f9"; // fuchsia-400
+                      bg = "#aa4bf5"; // nexer-light-purple
                     } else if (leave) {
                       const [approvedHex, pendingHex] = LEAVE_HEX[leave.leaveType] ?? LEAVE_HEX.A;
                       bg = leave.status === "B" ? approvedHex : pendingHex;
                     } else if (d.isHoliday) {
-                      bg = "#fecaca"; // red-200
+                      bg = "#ffd5cf"; // nexer-warm-red tint
                     } else if (d.isWeekend) {
-                      bg = "#fff1f2"; // rose-50
+                      bg = "#fff4f0"; // nexer-orange tint
                     } else {
                       bg = rowBg;
                     }
@@ -413,9 +413,9 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
                           background: bg,
                           height: 32,
                           userSelect: "none",
-                          outline: d.isToday && !leave && !selected ? "1px solid #7dd3fc" : undefined,
+                          outline: d.isToday && !leave && !selected ? "1px solid #d9e6f0" : undefined,
                           outlineOffset: "-1px",
-                          borderLeft: d.isToday ? "2px solid #38bdf8" : undefined,
+                          borderLeft: d.isToday ? "2px solid #190878" : undefined,
                         }}
                       />
                     );
