@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import toast from "react-hot-toast";
+import { getApiBaseUrl } from "../../api/baseUrl";
 import type { LeaveRequest, User } from "../../types";
 import { leaveRequestsApi } from "../../api/leaveRequests";
 
@@ -21,7 +22,7 @@ function initials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE = getApiBaseUrl();
 
 const EXPORTS = [
   {

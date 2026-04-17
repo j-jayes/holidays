@@ -42,4 +42,6 @@ az deployment group create \
 
 - Cosmos DB is provisioned with **Continuous 7-Day backup** (Point-in-Time Restore) enabled.
 - Container Apps scale to **zero** when idle to minimise cost.
+- The frontend Container App now proxies browser requests to the backend via same-origin `/api/*` routes. Set `BACKEND_ORIGIN` on the frontend app to the backend Container App HTTPS origin without a trailing slash.
+- If the backend needs canonical frontend links or explicit direct-call CORS origins, set `FRONTEND_URL` and optional `FRONTEND_ALLOWED_ORIGINS` on the backend app at deployment time.
 - Secrets (Cosmos DB keys, ACS connection strings) should be stored in Azure Key Vault and referenced via Container Apps secrets — not hardcoded in the Bicep file.

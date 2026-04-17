@@ -2,8 +2,7 @@
 
 A web application that replaces a manual Excel-based vacation tracking system for a 57-person Swedish consulting team. Built with React (TypeScript), FastAPI, and Azure Cosmos DB — deployed on Azure Container Apps with scale-to-zero.
 
-**Live app:** https://ca-holidays-frontend.nicegrass-38567ece.northeurope.azurecontainerapps.io  
-**API docs:** https://ca-holidays-backend.nicegrass-38567ece.northeurope.azurecontainerapps.io/docs
+**Deployment note:** Production frontend and backend URLs are deployment outputs from Azure Container Apps. Do not hardcode environment-generated FQDNs in code or docs; redeploys can change them.
 
 ---
 
@@ -113,10 +112,10 @@ The FastAPI backend exposes a fully documented REST API. Swagger UI is available
 ```
 ┌─────────────────────────────────────────────────────┐
 │                  Azure Container Apps                │
-│  ┌──────────────┐          ┌──────────────────────┐ │
-│  │  React App   │ <──────> │  FastAPI Backend     │ │
-│  │  (Frontend)  │  REST    │  (Backend)           │ │
-│  └──────────────┘          └──────────┬───────────┘ │
+│  ┌──────────────┐   /api/*  ┌──────────────────────┐ │
+│  │ React + Nginx│ ─────────>│  FastAPI Backend     │ │
+│  │  (Frontend)  │  proxy    │  (Backend)           │ │
+│  └──────────────┘           └──────────┬───────────┘ │
 │                                       │             │
 │                             ┌─────────▼──────────┐  │
 │                             │  Azure Cosmos DB   │  │
@@ -256,11 +255,24 @@ npm run dev
 
 App available at `http://localhost:5173`
 
+Auth mode behavior:
+
+- PasswordGate mode (default): active when `VITE_ENTRA_CLIENT_ID` and `VITE_ENTRA_TENANT_ID` are not both configured.
+- Entra mode: active only when both `VITE_ENTRA_CLIENT_ID` and `VITE_ENTRA_TENANT_ID` are set.
+
 ### Running with Docker Compose
 
 ```bash
 docker compose up --build
 ```
+
+### Production Connectivity Contract
+
+- Browsers should call the frontend origin only. Production API traffic goes through same-origin `/api/v1/*` routes.
+- The frontend container uses nginx to proxy `/api/*` to the backend origin provided at runtime via `BACKEND_ORIGIN`.
+- `BACKEND_ORIGIN` must be the backend HTTPS origin with no trailing slash.
+- `VITE_API_BASE_URL` remains a local-development convenience only. It should not be relied on for deployed frontend traffic.
+- Do not hardcode Azure Container Apps FQDNs in frontend code, nginx config, or documentation.
 
 ### Running Tests
 
@@ -356,9 +368,11 @@ When an employee requests leave, FastAPI sends a rich-text email to the designat
 
 ## 10. Azure Infrastructure
 
-All resources live in resource group **`rg-holidays`** under subscription `90a112e9-de6b-4011-be14-2cf8943a9ec8`.
+Container Apps are deployed per environment, for example **`rg-holidays-prod`** for production. Treat Azure Container Apps FQDNs as runtime outputs, not source-controlled configuration.
 
 ### Provisioned Resources
+
+The names below are example environment resources from an existing deployment history, not values that should be copied verbatim into code or docs.
 
 | Resource Name | Type | Location | Purpose |
 |---|---|---|---|
@@ -367,9 +381,9 @@ All resources live in resource group **`rg-holidays`** under subscription `90a11
 | `crholdaysdev001` | Azure Container Registry | Sweden Central | Docker image registry for backend & frontend (`crholdaysdev001.azurecr.io`) |
 | `log-holidays-dev-001` | Log Analytics Workspace | Sweden Central | Centralised logging (manually created) |
 | `workspace-rgholidaysPpiL` | Log Analytics Workspace | North Europe | Auto-created by Container Apps Environment |
-| `cae-holidays-dev-001` | Container Apps Environment | North Europe | Runtime host — default domain: `nicegrass-38567ece.northeurope.azurecontainerapps.io` |
+| `cae-holidays-dev-001` | Container Apps Environment | North Europe | Runtime host for environment-specific Azure Container Apps default domains |
 
-> **Note:** Backend and frontend Container Apps are deployed into `cae-holidays-dev-001` during sprint 1 CI/CD setup.
+> **Note:** Backend and frontend Container Apps must be deployed together with the frontend runtime variable `BACKEND_ORIGIN` pointed at the active backend HTTPS origin.
 
 ### Recreating the Infrastructure
 
@@ -460,6 +474,55 @@ Copy the example files and populate them — **do not commit the filled-in versi
 | `backend/org_config.example.yaml` | ✅ Yes | Template for `org_config.yaml` |
 | `frontend/.env.example` | ✅ Yes | Template for frontend Vite variables |
 | `frontend/.env.local` | ❌ No | Real Entra ID client IDs for local dev |
+
+### Production Runtime Variables
+
+These values are injected by the container platform during deployment rather than committed to the repo:
+
+| Variable | App | Required | Purpose |
+|---|---|---|---|
+| `BACKEND_ORIGIN` | Frontend container | ✅ Yes | nginx proxy target for same-origin `/api/*` requests in deployed environments |
+| `VITE_API_BASE_URL` | Frontend local dev only | Local only | Direct Vite-to-backend URL for `npm run dev`; not used for deployed frontend traffic |
+| `VITE_ENTRA_CLIENT_ID` | Frontend | Optional | Enables Entra auth mode when paired with `VITE_ENTRA_TENANT_ID` |
+| `VITE_ENTRA_TENANT_ID` | Frontend | Optional | Enables Entra auth mode when paired with `VITE_ENTRA_CLIENT_ID` |
+| `VITE_ENTRA_REDIRECT_URI` | Frontend | Optional | Redirect URI used by MSAL; defaults to current origin |
+| `FRONTEND_URL` | Backend | Recommended | Canonical frontend URL for email links and as the default direct-call origin |
+| `FRONTEND_ALLOWED_ORIGINS` | Backend | Optional | Comma-separated override for direct backend CORS callers when more than one frontend/admin origin must be allowed |
+
+### Deploy / Redeploy Checklist
+
+```bash
+# Validate before deploying
+cd frontend && npm run build
+cd ..
+az bicep build --file infra/main.bicep
+
+# Deploy infrastructure or update Container App configuration
+az deployment group create \
+  --resource-group <resource-group> \
+  --template-file infra/main.bicep \
+  --parameters \
+      namePrefix="vactracker" \
+      containerRegistryServer="<registry-server>" \
+      backendImageTag="<backend-tag>" \
+      frontendImageTag="<frontend-tag>"
+
+# Verify active revisions
+az containerapp revision list -g <resource-group> -n <frontend-app> -o table
+az containerapp revision list -g <resource-group> -n <backend-app> -o table
+
+# Smoke-test the deployed path through the frontend origin
+curl -i https://<frontend-fqdn>/api/v1/public-holidays/SE/2026
+curl -I https://<frontend-fqdn>/api/v1/exports/leave-requests.csv
+curl -i https://<backend-fqdn>/health
+```
+
+If the frontend loads but API calls fail after a redeploy, check these first:
+
+- The frontend container revision has `BACKEND_ORIGIN` set to the current backend HTTPS origin.
+- The nginx config in the frontend image still uses runtime templating, not a hardcoded backend hostname.
+- The browser is calling same-origin `/api/*`, not a baked backend URL.
+- If you are using direct backend callers or generating notification links, the backend runtime values for `FRONTEND_URL` and optional `FRONTEND_ALLOWED_ORIGINS` still match the active frontend deployment.
 
 ---
 

@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { useAuth } from "../auth/useAuth";
 import { apiScopes } from "../auth/msalConfig";
+import { isEntraConfigured } from "../auth/mode";
 
-const entraConfigured = Boolean(import.meta.env.VITE_ENTRA_CLIENT_ID);
+const entraConfigured = isEntraConfigured();
 
 /**
  * Landing page.

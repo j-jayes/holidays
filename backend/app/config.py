@@ -28,6 +28,21 @@ class Settings(BaseSettings):
     # App
     app_env: str = "development"
     frontend_url: str = "http://localhost:5173"
+    frontend_allowed_origins: str = ""
+
+    @property
+    def normalized_frontend_url(self) -> str:
+        return self.frontend_url.rstrip("/")
+
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        source = self.frontend_allowed_origins or self.normalized_frontend_url
+        origins: list[str] = []
+        for raw_origin in source.split(","):
+            origin = raw_origin.strip().rstrip("/")
+            if origin and origin not in origins:
+                origins.append(origin)
+        return origins
 
 
 settings = Settings()

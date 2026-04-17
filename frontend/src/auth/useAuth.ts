@@ -17,12 +17,23 @@
  *     };
  *   }
  */
+import { msalInstance } from "./msalConfig";
+import { isEntraConfigured } from "./mode";
+
 const SESSION_KEY = "vt_authed";
 
 export function useAuth() {
-  const isAuthenticated = sessionStorage.getItem(SESSION_KEY) === "1";
+  const entraMode = isEntraConfigured();
+  const isAuthenticated = entraMode
+    ? msalInstance.getAllAccounts().length > 0
+    : sessionStorage.getItem(SESSION_KEY) === "1";
 
   const logout = () => {
+    if (entraMode) {
+      void msalInstance.logoutRedirect();
+      return;
+    }
+
     sessionStorage.removeItem(SESSION_KEY);
     window.location.reload();
   };

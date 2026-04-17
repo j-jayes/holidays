@@ -13,9 +13,7 @@ async def notify_manager(request: LeaveRequest, employee: User, manager: User) -
     The email contains employee name, requested dates, leave type, and a
     magic link to the approval dashboard.
     """
-    approval_url = (
-        f"{settings.frontend_url}/dashboard/requests/{request.id}"
-    )
+    approval_url = f"{settings.normalized_frontend_url}/dashboard/requests/{request.id}"
 
     subject = f"Leave Request from {employee.display_name}"
     html_body = f"""

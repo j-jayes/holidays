@@ -1,19 +1,29 @@
 import axios from "axios";
 import { msalInstance, apiScopes } from "../auth/msalConfig";
+import { isEntraConfigured } from "../auth/mode";
+import { getApiBaseUrl } from "./baseUrl";
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/",
+  baseURL: getApiBaseUrl() || "/",
 });
 
 /** Attach a Bearer token to every outgoing request. */
 apiClient.interceptors.request.use(async (config) => {
+  if (!isEntraConfigured() || apiScopes.length === 0) {
+    return config;
+  }
+
   const accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
-    const result = await msalInstance.acquireTokenSilent({
-      scopes: apiScopes,
-      account: accounts[0],
-    });
-    config.headers.Authorization = `Bearer ${result.accessToken}`;
+    try {
+      const result = await msalInstance.acquireTokenSilent({
+        scopes: apiScopes,
+        account: accounts[0],
+      });
+      config.headers.Authorization = `Bearer ${result.accessToken}`;
+    } catch {
+      // Keep request unauthenticated if silent token acquisition fails.
+    }
   }
   return config;
 });
