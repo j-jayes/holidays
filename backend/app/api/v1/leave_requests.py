@@ -1,6 +1,7 @@
 ﻿"""Leave request CRUD endpoints."""
 
 import uuid
+from datetime import date as _date
 
 from fastapi import APIRouter, HTTPException, Path, status
 
@@ -12,7 +13,10 @@ from app.db.cosmos import (
     LEAVE_REQUESTS_CONTAINER,
     USERS_CONTAINER,
 )
+from app.models.leave_request import LeaveRequest, LeaveStatus
+from app.models.user import User, UserRole
 from app.schemas.leave_request import LeaveRequestCreate, LeaveRequestRead, LeaveRequestUpdate
+from app.services.notifications import notify_employee_decision
 
 router = APIRouter()
 
@@ -58,7 +62,13 @@ async def update_leave_request(
     payload: LeaveRequestUpdate,
     request_id: str = Path(...),
 ) -> LeaveRequestRead:
-    """Update the status and/or notes of a leave request."""
+    """Update the status and/or notes of a leave request.
+
+    When a manager approves (status → B) or denies (status → C), an email
+    notification is sent to the employee.  Undo actions (status → A) are
+    silent — no email is sent.  Notification failures are swallowed so they
+    never prevent the status update from persisting.
+    """
     item = await get_item(LEAVE_REQUESTS_CONTAINER, request_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found")
@@ -66,6 +76,37 @@ async def update_leave_request(
     if payload.notes:
         item["notes"] = payload.notes
     saved = await upsert_item(LEAVE_REQUESTS_CONTAINER, item)
+
+    # ── Fire-and-forget employee notification ────────────────────────────────
+    # Only send for actionable decisions; never for undo (A) or other codes.
+    if payload.status in ("B", "C"):
+        user_doc = await get_item(USERS_CONTAINER, item.get("userId", ""))
+        if user_doc:
+            employee = User(
+                id=user_doc["id"],
+                email=user_doc.get("email", ""),
+                display_name=user_doc.get("displayName", ""),
+                role=UserRole(user_doc.get("role", "Employee")),
+                business_unit_id=user_doc.get("businessUnitId", ""),
+                entra_oid=user_doc.get("entraOid", ""),
+                annual_leave_balance=user_doc.get("annualLeaveBalance", 0.0),
+                comp_time_balance=user_doc.get("compTimeBalance", 0.0),
+            )
+            req_obj = LeaveRequest(
+                id=saved["id"],
+                user_id=saved.get("userId", ""),
+                business_unit_id=saved.get("businessUnitId", ""),
+                start_date=_date.fromisoformat(saved.get("startDate", "1970-01-01")),
+                end_date=_date.fromisoformat(saved.get("endDate", "1970-01-01")),
+                leave_type=LeaveStatus(saved.get("leaveType", "A")),
+                status=LeaveStatus(saved.get("status", "A")),
+                notes=saved.get("notes", ""),
+            )
+            try:
+                await notify_employee_decision(req_obj, employee, payload.status)
+            except Exception:  # noqa: BLE001 — notification must not block the response
+                pass
+
     return LeaveRequestRead(**_from_cosmos(saved))
 
 

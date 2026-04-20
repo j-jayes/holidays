@@ -77,3 +77,39 @@
 | UI/UX polish (loading states, error boundaries) | Frontend | 🔲 |
 | User Acceptance Testing (UAT) | QA / All | 🔲 |
 | Final deployment and rollout | DevOps | 🔲 |
+
+---
+
+## Sprint 7 — Data Connections, Approvals UX & Power Query (Weeks 13–14)
+
+**Goal:** Managers have a richer approvals workflow; analysts can pull live data into Excel via Power Query.
+
+See full spec: `docs/feature-data-connections-approvals.md`
+
+### Backend
+
+| Task | Owner | Status |
+|------|-------|--------|
+| Extract `_fetch_enriched_rows()` → `_export_utils.py` (shared helper) | Backend | ✅ |
+| Implement OData v4 service root (`GET /api/v1/odata/`) | Backend | ✅ |
+| Implement OData `$metadata` CSDL XML endpoint | Backend | ✅ |
+| Implement OData `LeaveRequests` entity set with `$top`, `$skip`, `$select`, `$orderby` | Backend | ✅ |
+| Register OData router in `main.py` | Backend | ✅ |
+| Verify `PATCH /leave-requests/:id` accepts `{ "status": "A" }` for undo | Backend | ✅ |
+| Email notification to employee on approve/deny (`notify_employee_decision`) | Backend | ✅ |
+
+### Frontend
+
+| Task | Owner | Status |
+|------|-------|--------|
+| Add `"data"` tab to `TABS` in `Dashboard.tsx` | Frontend | ✅ |
+| Add "📊 Data" shortcut button (header, top-right) | Frontend | ✅ |
+| Create `DataConnections` component (exports + OData copy/instructions) | Frontend | ✅ |
+| Remove export section from `ManagerDashboard` | Frontend | ✅ |
+| Add `businessUnits` prop to `ManagerDashboard`; pass from `Dashboard` | Frontend | ✅ |
+| Refactor pending requests grid → one column per Business Unit | Frontend | ✅ |
+| Bulk approve all requests within a BU ("Approve all" button per column) | Frontend | ✅ |
+| Pending age badge (amber "Waiting Nd" for requests ≥ 3 days old) | Frontend | ✅ |
+| Leave balance shown on each approval card | Frontend | ✅ |
+| Add `recentDecisions` state + `handleUndo()` in `ManagerDashboard` | Frontend | ✅ |
+| Render "Recent Decisions" horizontal-scroll strip with Undo buttons | Frontend | ✅ |

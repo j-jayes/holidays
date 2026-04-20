@@ -2,6 +2,7 @@
 import { Toaster } from "react-hot-toast";
 import Calendar from "../components/Calendar/Calendar";
 import ManagerDashboard from "../components/ManagerDashboard/ManagerDashboard";
+import DataConnections from "../components/DataConnections/DataConnections";
 import LeaveRequestModal from "../components/LeaveRequestModal/LeaveRequestModal";
 import { usePublicHolidays } from "../hooks/usePublicHolidays";
 import { leaveRequestsApi } from "../api/leaveRequests";
@@ -25,7 +26,7 @@ export default function Dashboard() {
   const [leaveRequests,  setLeaveRequests]  = useState<LeaveRequest[]>([]);
   const [users,          setUsers]          = useState<User[]>([]);
   const [businessUnits,  setBusinessUnits]  = useState<BusinessUnit[]>([]);
-  const [tab,            setTab]            = useState<"calendar" | "manager">("calendar");
+  const [tab,            setTab]            = useState<"calendar" | "manager" | "data">("calendar");
   const [modalRange,     setModalRange]     = useState<{ start: string; end: string; uid?: string } | null>(null);
   const [loadState,      setLoadState]      = useState<LoadState>("loading");
   const [retryCount,     setRetryCount]     = useState(0);
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const TABS = [
     { key: "calendar", label: "Team Calendar" },
     { key: "manager",  label: `Approvals${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ""}` },
+    { key: "data",     label: "Data" },
   ] as const;
 
   return (
@@ -112,6 +114,16 @@ export default function Dashboard() {
         <div className="px-4 py-3 flex items-center gap-3">
           <span className="text-2xl">&#127958;&#65039;</span>
           <span className="font-bold text-gray-800 text-lg flex-1">Team Vacation Tracker</span>
+          <button
+            onClick={() => setTab("data")}
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors mr-2
+              ${ tab === "data"
+                ? "bg-nexer-blue text-white"
+                : "bg-nexer-light-blue text-nexer-blue hover:bg-nexer-blue hover:text-white"
+              }`}
+          >
+            <span>📊</span> Data
+          </button>
           <nav className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {TABS.map((t) => (
               <button
@@ -142,8 +154,12 @@ export default function Dashboard() {
           <ManagerDashboard
             pendingRequests={pendingRequests}
             users={users}
+            businessUnits={businessUnits}
             onUpdate={reloadLeave}
           />
+        )}
+        {tab === "data" && (
+          <DataConnections />
         )}
       </main>
 
