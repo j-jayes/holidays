@@ -187,7 +187,7 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
   const totalW = NAME_W + days.length * DAY_W;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
 
       {/* ── Filter bar ──────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-100 shrink-0 flex-wrap">
@@ -208,7 +208,7 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
           {[
           { bg: "#ff875a", label: "Approved" },
             { bg: "#ffd0bb", label: "Pending" },
-            { bg: "#d9e6f0", label: "Parental" },
+            { bg: "#190878", label: "Parental" },
             { bg: "#5a1ea0", label: "Comp time" },
             { bg: "#ffd5cf", label: "Holiday / Weekend" },
           ].map(({ bg, label }) => (
@@ -232,7 +232,7 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
       {/* ── Scrollable table ──────────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="overflow-auto"
+        className="overflow-auto flex-1 min-h-0"
         style={{ cursor: "cell" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
