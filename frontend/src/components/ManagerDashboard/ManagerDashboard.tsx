@@ -77,7 +77,7 @@ export default function ManagerDashboard({ pendingRequests, users, businessUnits
         requestId: req.id,
         snapshot:  { ...req },
         userName:  name,
-        action,
+        action:    action === "approve" ? "approved" : "denied",
         decidedAt: Date.now(),
       };
       setRecentDecisions((prev) => {
