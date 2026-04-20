@@ -1,0 +1,122 @@
+name: Deploy — Azure Container Apps
+
+# ─── How to set up ─────────────────────────────────────────────────────────────
+# 1. Create a service principal scoped to the resource group:
+#
+#      az ad sp create-for-rbac \
+#        --name "github-holidays-deploy" \
+#        --role contributor \
+#        --scopes /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-holidays \
+#        --json-auth
+#
+# 2. Copy the JSON output and add it as a repository secret named AZURE_CREDENTIALS
+#    (GitHub repo → Settings → Secrets and variables → Actions → New secret)
+# ───────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag — leave blank to use the short commit SHA"
+        required: false
+        default: ""
+
+env:
+  REGISTRY: crholdaysdev001.azurecr.io
+  ACR_NAME: crholdaysdev001
+  RESOURCE_GROUP: rg-holidays
+  BACKEND_APP: ca-holidays-backend
+  FRONTEND_APP: ca-holidays-frontend
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Resolve the image tag: use the input if provided, otherwise short SHA
+      - name: Resolve image tag
+        id: tag
+        run: |
+          raw="${{ github.event.inputs.tag }}"
+          echo "value=${raw:-${GITHUB_SHA::8}}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # ── Build images in Azure Container Registry ────────────────────────────
+      # Running on Linux so no --no-logs workaround needed; full build output
+      # appears in the Actions log for easier debugging.
+
+      - name: Build backend image
+        run: |
+          az acr build \
+            --registry "$ACR_NAME" \
+            --image "backend:${{ steps.tag.outputs.value }}" \
+            --file backend/Dockerfile \
+            backend/
+
+      - name: Build frontend image
+        run: |
+          az acr build \
+            --registry "$ACR_NAME" \
+            --image "frontend:${{ steps.tag.outputs.value }}" \
+            --file frontend/Dockerfile \
+            frontend/
+
+      # ── Deploy both Container Apps ──────────────────────────────────────────
+
+      - name: Deploy backend
+        run: |
+          az containerapp update \
+            -g "$RESOURCE_GROUP" \
+            -n "$BACKEND_APP" \
+            --image "$REGISTRY/backend:${{ steps.tag.outputs.value }}"
+
+      - name: Deploy frontend
+        run: |
+          az containerapp update \
+            -g "$RESOURCE_GROUP" \
+            -n "$FRONTEND_APP" \
+            --image "$REGISTRY/frontend:${{ steps.tag.outputs.value }}"
+
+      # ── Smoke tests ─────────────────────────────────────────────────────────
+
+      - name: Wait for revisions to activate
+        run: sleep 20
+
+      - name: Smoke test — backend health
+        run: |
+          curl -fsS \
+            https://ca-holidays-backend.nicegrass-38567ece.northeurope.azurecontainerapps.io/health \
+            | grep '"ok"'
+
+      - name: Smoke test — OData service root
+        run: |
+          curl -fsS \
+            https://ca-holidays-backend.nicegrass-38567ece.northeurope.azurecontainerapps.io/api/v1/odata/ \
+            | grep '@odata.context'
+
+      - name: Smoke test — exports reachable
+        run: |
+          curl -fsS -o /dev/null -w "%{http_code}" \
+            https://ca-holidays-frontend.nicegrass-38567ece.northeurope.azurecontainerapps.io/api/v1/exports/leave-requests.csv \
+            | grep -E "^(200|401|403)$"
+
+      # ── Summary ─────────────────────────────────────────────────────────────
+
+      - name: Deployment summary
+        run: |
+          echo "### Deployed :rocket:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Tag** | \`${{ steps.tag.outputs.value }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Backend** | \`$REGISTRY/backend:${{ steps.tag.outputs.value }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Frontend** | \`$REGISTRY/frontend:${{ steps.tag.outputs.value }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Frontend URL** | https://ca-holidays-frontend.nicegrass-38567ece.northeurope.azurecontainerapps.io/dashboard |" >> "$GITHUB_STEP_SUMMARY"
