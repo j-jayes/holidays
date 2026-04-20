@@ -68,7 +68,7 @@ export default function ManagerDashboard({ pendingRequests, users, businessUnits
         await leaveRequestsApi.update(req.id, { status: "B" });
         toast.success(`Approved — ${name}`);
       } else {
-        await leaveRequestsApi.cancel(req.id);
+        await leaveRequestsApi.update(req.id, { status: "C" });
         toast.success(`Denied — ${name}`);
       }
 

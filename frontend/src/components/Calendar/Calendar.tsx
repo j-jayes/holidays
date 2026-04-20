@@ -104,6 +104,8 @@ export default function Calendar({ leaveRequests, publicHolidays, users, busines
   const userLeaveMap = useMemo(() => {
     const map = new Map<string, Map<string, { leaveType: string; status: string }>>();
     leaveRequests.forEach((req) => {
+      // Exclude denied requests (status "C") — they should not appear on the calendar
+      if (req.status === "C") return;
       if (!map.has(req.userId)) map.set(req.userId, new Map());
       const um = map.get(req.userId)!;
       let d = dayjs(req.startDate);

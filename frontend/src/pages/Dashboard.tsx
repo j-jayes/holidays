@@ -68,7 +68,7 @@ export default function Dashboard() {
   const TABS = [
     { key: "calendar", label: "Team Calendar" },
     { key: "manager",  label: `Approvals${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ""}` },
-    { key: "data",     label: "Data" },
+    { key: "data",     label: "Data Export" },
   ] as const;
 
   return (
@@ -114,16 +114,6 @@ export default function Dashboard() {
         <div className="px-4 py-3 flex items-center gap-3">
           <span className="text-2xl">&#127958;&#65039;</span>
           <span className="font-bold text-gray-800 text-lg flex-1">Team Vacation Tracker</span>
-          <button
-            onClick={() => setTab("data")}
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors mr-2
-              ${ tab === "data"
-                ? "bg-nexer-blue text-white"
-                : "bg-nexer-light-blue text-nexer-blue hover:bg-nexer-blue hover:text-white"
-              }`}
-          >
-            <span>📊</span> Data
-          </button>
           <nav className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {TABS.map((t) => (
               <button
