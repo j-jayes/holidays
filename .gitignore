@@ -2,6 +2,7 @@
 # Secrets & PII — never commit these
 # ──────────────────────────────────────────────────
 org_config.yaml
+backend/.env
 
 # ──────────────────────────────────────────────────
 # Node / React / Frontend

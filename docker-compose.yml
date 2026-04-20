@@ -4,10 +4,20 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
+    environment:
+      - APP_ENV=development
+      - FRONTEND_URL=http://localhost:5173
+      - FRONTEND_ALLOWED_ORIGINS=http://localhost:5173
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   frontend:
     build:
@@ -16,8 +26,15 @@ services:
     ports:
       - "5173:5173"
     env_file:
-      - ./frontend/.env.local
+      - path: ./frontend/.env.local
+        required: false
+    environment:
+      # Tell the Vite dev-server proxy to reach the backend via Docker networking
+      - API_PROXY_TARGET=http://backend:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      backend:
+        condition: service_healthy

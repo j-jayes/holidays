@@ -9,7 +9,6 @@ COPY . .
 ARG VITE_ENTRA_CLIENT_ID
 ARG VITE_ENTRA_TENANT_ID
 ARG VITE_ENTRA_REDIRECT_URI
-# VITE_APP_PASSWORD is read from .env.production in the build context.
 ENV VITE_ENTRA_CLIENT_ID=$VITE_ENTRA_CLIENT_ID \
     VITE_ENTRA_TENANT_ID=$VITE_ENTRA_TENANT_ID \
     VITE_ENTRA_REDIRECT_URI=$VITE_ENTRA_REDIRECT_URI
@@ -17,7 +16,18 @@ ENV VITE_ENTRA_CLIENT_ID=$VITE_ENTRA_CLIENT_ID \
 RUN npm run build
 
 FROM nginx:1.27-alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+
+# Run nginx as non-root
+RUN chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx/conf.d && \
+    sed -i 's/^user  nginx;/# user  nginx;/' /etc/nginx/nginx.conf
+
+COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
-EXPOSE 80
+
+USER nginx
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD ["wget", "-qO/dev/null", "http://localhost:8080/"]
+
 CMD ["nginx", "-g", "daemon off;"]

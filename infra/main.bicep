@@ -24,6 +24,16 @@ param backendImageTag string = 'latest'
 @description('Frontend container image tag')
 param frontendImageTag string = 'latest'
 
+@description('Microsoft Entra ID tenant ID for backend token validation')
+param azureTenantId string = ''
+
+@description('Microsoft Entra ID client ID for backend token validation')
+param azureClientId string = ''
+
+@secure()
+@description('Microsoft Entra ID client secret')
+param azureClientSecret string = ''
+
 // ─── Cosmos DB ───────────────────────────────────────────────────────────────
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: '${namePrefix}-cosmos'
@@ -95,11 +105,18 @@ resource backendApp 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     managedEnvironmentId: caEnv.id
     configuration: {
+      // Backend is only reached via the frontend's nginx reverse-proxy;
+      // no need to expose it to the public internet.
       ingress: {
-        external: true
+        external: false
         targetPort: 8000
         transport: 'auto'
       }
+      secrets: [
+        { name: 'cosmos-db-key', value: cosmosAccount.listKeys().primaryMasterKey }
+        { name: 'acs-connection-string', value: acs.listKeys().primaryConnectionString }
+        { name: 'azure-client-secret', value: azureClientSecret }
+      ]
     }
     template: {
       containers: [
@@ -108,8 +125,16 @@ resource backendApp 'Microsoft.App/containerApps@2024-03-01' = {
           image: '${containerRegistryServer}/vacation-tracker-backend:${backendImageTag}'
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: [
+            { name: 'APP_ENV', value: 'production' }
             { name: 'COSMOS_DB_URL', value: cosmosAccount.properties.documentEndpoint }
             { name: 'COSMOS_DB_NAME', value: 'vacation-tracker' }
+            { name: 'COSMOS_DB_KEY', secretRef: 'cosmos-db-key' }
+            { name: 'ACS_CONNECTION_STRING', secretRef: 'acs-connection-string' }
+            { name: 'AZURE_TENANT_ID', value: azureTenantId }
+            { name: 'AZURE_CLIENT_ID', value: azureClientId }
+            { name: 'AZURE_CLIENT_SECRET', secretRef: 'azure-client-secret' }
+            // CORS: the frontend FQDN is the only allowed origin in production.
+            { name: 'FRONTEND_ALLOWED_ORIGINS', value: 'https://${namePrefix}-frontend.${caEnv.properties.defaultDomain}' }
           ]
         }
       ]
@@ -127,7 +152,7 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       ingress: {
         external: true
-        targetPort: 80
+        targetPort: 8080
         transport: 'auto'
       }
     }
@@ -148,6 +173,5 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ─── Outputs ──────────────────────────────────────────────────────────────────
-output backendUrl string = 'https://${backendApp.properties.configuration.ingress.fqdn}'
 output frontendUrl string = 'https://${frontendApp.properties.configuration.ingress.fqdn}'
 output cosmosEndpoint string = cosmosAccount.properties.documentEndpoint
