@@ -19,7 +19,8 @@ FROM nginx:1.27-alpine
 
 # Run nginx as non-root
 RUN chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx/conf.d && \
-    sed -i 's/^user  nginx;/# user  nginx;/' /etc/nginx/nginx.conf
+    sed -i 's/^user  nginx;/# user  nginx;/' /etc/nginx/nginx.conf && \
+    sed -i 's|/run/nginx.pid|/tmp/nginx.pid|' /etc/nginx/nginx.conf
 
 COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
