@@ -1,16 +1,11 @@
 name: Deploy — Azure Container Apps
 
-# ─── How to set up ─────────────────────────────────────────────────────────────
-# 1. Create a service principal scoped to the resource group:
-#
-#      az ad sp create-for-rbac \
-#        --name "github-holidays-deploy" \
-#        --role contributor \
-#        --scopes /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-holidays \
-#        --json-auth
-#
-# 2. Copy the JSON output and add it as a repository secret named AZURE_CREDENTIALS
-#    (GitHub repo → Settings → Secrets and variables → Actions → New secret)
+# ─── Auth ──────────────────────────────────────────────────────────────────────
+# Uses Workload Identity Federation (OIDC) — no client secret required.
+# The following repository secrets are already configured:
+#   AZURE_CLIENT_ID      — managed identity client ID
+#   AZURE_TENANT_ID      — Azure AD tenant ID
+#   AZURE_SUBSCRIPTION_ID — subscription ID
 # ───────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -27,6 +22,11 @@ env:
   RESOURCE_GROUP: rg-holidays
   BACKEND_APP: ca-holidays-backend
   FRONTEND_APP: ca-holidays-frontend
+
+# Required for OIDC token exchange
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -47,7 +47,9 @@ jobs:
       - name: Azure login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # ── Build images in Azure Container Registry ────────────────────────────
       # Running on Linux so no --no-logs workaround needed; full build output
